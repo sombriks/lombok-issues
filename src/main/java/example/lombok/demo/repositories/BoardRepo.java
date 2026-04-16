@@ -10,8 +10,9 @@ public interface BoardRepo extends JpaRepository<Board, Long> {
     @Query("""
             SELECT b
               FROM Board b
-   LEFT JOIN FETCH b.assignees
-   LEFT JOIN FETCH b.tasks
+   LEFT JOIN FETCH b.tasks t
+   LEFT JOIN FETCH b.assignees a
+   LEFT JOIN FETCH a.tasks a2
              WHERE b.id = :id""")
     Optional<Board> findByIdWithDetails(Long id);
 }

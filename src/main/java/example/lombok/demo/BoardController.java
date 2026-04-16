@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RestController
@@ -33,7 +34,7 @@ public class BoardController {
     @GetMapping
     public List<BoardView> getAllBoards() {
         log.info("getAllBoards");
-        List<BoardView> result =  boardRepo
+        List<BoardView> result = boardRepo
                 .findAll()
                 .stream()
                 .map(BoardView::from)
@@ -47,25 +48,23 @@ public class BoardController {
     public BoardView createBoard(@RequestBody Board board) {
         log.info("createBoard");
         boardRepo.save(board);
-        Stream.ofNullable(board.getTasks())
+        board.setTasks(Stream.ofNullable(board.getTasks())
                 .flatMap(Set::stream)
                 .map(task -> task.withBoard(board))
-                .forEach(taskRepo::save);
-        Stream.ofNullable(board.getAssignees())
+                .map(taskRepo::save)
+                .collect(Collectors.toSet()));
+        board.setAssignees(Stream.ofNullable(board.getAssignees())
                 .flatMap(Set::stream)
                 .map(assignee -> assignee.withBoard(board))
-                .forEach(assigneeRepo::save);
+                .map(assigneeRepo::save).collect(Collectors.toSet()));
         return BoardView.from(board);
     }
 
     @GetMapping("/{id}")
     public BoardView getBoard(@PathVariable Long id) {
         log.info("getBoard");
-        Optional<Board> board = boardRepo
-                .findByIdWithDetails(id);
-        BoardView bv = board
-                .map(BoardView::from)
-                .orElse(null);
+        Optional<Board> board = boardRepo.findById(id);
+        BoardView bv = board.map(BoardView::from).orElse(null);
         log.info("getBoard: {}", bv);
         return bv;
     }
@@ -76,14 +75,26 @@ public class BoardController {
         log.info("updateBoard");
         board.setId(id);
         boardRepo.save(board);
-        Stream.ofNullable(board.getTasks())
+        board.setTasks(Stream.ofNullable(board.getTasks())
                 .flatMap(Set::stream)
                 .map(task -> task.withBoard(board))
-                .forEach(taskRepo::save);
-        Stream.ofNullable(board.getAssignees())
+                .map(taskRepo::save)
+                .collect(Collectors.toSet()));
+        board.setAssignees(Stream.ofNullable(board.getAssignees())
                 .flatMap(Set::stream)
-                .map(assignee -> assignee.withBoard(board))
-                .forEach(assigneeRepo::save);
+                .map(assignee -> {
+                    assignee.withBoard(board);
+                    assigneeRepo.save(assignee);
+                    assignee.setTasks(Stream.ofNullable(assignee.getTasks())
+                            .flatMap(Set::stream)
+                            .map(task -> task
+                                    .withBoard(board)
+                                    .withAssignee(assignee))
+                            .map(taskRepo::save)
+                            .collect(Collectors.toSet()));
+                    return assignee;
+                })
+                .map(assigneeRepo::save).collect(Collectors.toSet()));
         return BoardView.from(board);
     }
 

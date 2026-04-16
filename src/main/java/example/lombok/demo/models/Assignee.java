@@ -17,7 +17,7 @@ public class Assignee {
     @ManyToOne
     @JoinColumn(name = "board_id")
     private Board board;
-    @OneToMany(mappedBy = "assignee")
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.EAGER)
     private Set<Task> tasks;
 
     public Assignee() {
