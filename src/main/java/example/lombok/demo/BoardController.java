@@ -5,8 +5,8 @@ import example.lombok.demo.models.Board;
 import example.lombok.demo.repositories.AssigneeRepo;
 import example.lombok.demo.repositories.BoardRepo;
 import example.lombok.demo.repositories.TaskRepo;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,14 +15,20 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-@Slf4j
 @RestController
-@AllArgsConstructor
 @RequestMapping("/boards")
 public class BoardController {
+    private static final Logger log = LoggerFactory.getLogger(BoardController.class);
+
     private final BoardRepo boardRepo;
     private final AssigneeRepo assigneeRepo;
     private final TaskRepo taskRepo;
+
+    public BoardController(BoardRepo boardRepo, AssigneeRepo assigneeRepo, TaskRepo taskRepo) {
+        this.boardRepo = boardRepo;
+        this.assigneeRepo = assigneeRepo;
+        this.taskRepo = taskRepo;
+    }
 
     @GetMapping
     public List<BoardView> getAllBoards() {
